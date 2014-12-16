@@ -103,7 +103,6 @@ public:
       quotes state_q = deserialize(state.data());
       quotes input_q = deserialize(input.data());
 // Find the best quote
-fprintf(stderr,"input.ms=%ld state ms=%ld, state.size=%ld input.size=%ld\n", input_q.time, state_q.time, state_q.list.size(), input_q.list.size());
       opraquote best = state_q.list.at(0);
       opraquote o;
       bool replace;
@@ -119,7 +118,6 @@ fprintf(stderr,"input.ms=%ld state ms=%ld, state.size=%ld input.size=%ld\n", inp
           best.bidsz = o.bidsz;
           best.bidexch = o.bidexch;
         }
-fprintf(stderr,"j=%d o.ask=%f best.ask=%f\n",j,o.ask,best.ask);
         if(o.ask < best.ask || replace)
         { 
           best.ask = o.ask;
@@ -127,7 +125,6 @@ fprintf(stderr,"j=%d o.ask=%f best.ask=%f\n",j,o.ask,best.ask);
           best.askexch = o.askexch;
         }
       }
-fprintf(stderr,"OK best ask=%f\n",best.ask);
       state_q.list.at(0) = best;
       if(input_q.time > state_q.time) state_q.time = input_q.time;
       serialize_to_scidb_value(state_q, state);
