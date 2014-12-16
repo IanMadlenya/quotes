@@ -135,7 +135,8 @@ We can count the collisions in the loaded data (among instrument_id 2 values)
 with a redimension aggregate:
 ```
 redimension(opraqte, 
-  <count: uint64 null>[exch=0:255,256,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0],
+  <count: uint64 null>
+    [exch=0:255,256,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0],
   count(*) as count)
 {exch,instrument_id,day,ms} count
 {65,1,1412222400,1000} 1
@@ -155,7 +156,11 @@ redimension(opraqte,
 We can find the best quote among the data that collide and eliminate the synth
 dimension with:
 ```
-redimension(opraqte, <quote: quote null>[exch=0:255,256,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0], quote_best(quote) as quote)
+redimension(opraqte,
+  <quote: quote null>
+  [exch=0:255,256,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0],
+  quote_best(quote) as quote)
+
 {exch,instrument_id,day,ms} quote
 {65,1,1412222400,1000} '3.00, 10, A, 5.00, 50, A,'
 {65,1,1412222400,2000} '2.00, 20, A, 4.00, 10, A,'
@@ -180,13 +185,20 @@ time axis.
 
 Example:
 ```
-A="redimension(opraqte, <quote: quote null>[exch=0:255,256,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0], quote_best(quote) as quote)"
+A="redimension(opraqte,
+     <quote: quote null>
+     [exch=0:255,256,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0],
+     quote_best(quote) as quote)"
 
-B="redimension($A, <quote:quote null> [instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0], quote_accumulate(quote) as quote)"
+B="redimension($A,
+     <quote:quote null>
+     [instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0],
+     quote_accumulate(quote) as quote)"
 
 C="cumulate($B, quote_best(quote) as nbbo, ms)"
 
 iquery -aq "$C"
+
 {instrument_id,day,ms} nbbo
 {1,1412222400,1000} '3.00, 10, A, 5.00, 50, A,'
 {1,1412222400,2000} '2.00, 20, A, 4.00, 10, A,'
