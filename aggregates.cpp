@@ -110,15 +110,22 @@ public:
       { 
         replace = false;
         o = input_q.list.at(j);
-        if(o.bidexch == best.bidexch && state_q.time > input_q.time) continue;
-        else if(o.bidexch == best.bidexch) replace = true;
-        if(o.bid > best.bid || replace)
+        if(o.bidexch == best.bidexch)
+        {
+          if(state_q.time < input_q.time) replace = true;
+        } else if(o.bid > best.bid) replace = true;
+        if(replace)
         { 
           best.bid = o.bid;
           best.bidsz = o.bidsz;
           best.bidexch = o.bidexch;
         }
-        if(o.ask < best.ask || replace)
+        replace = false;
+        if(o.askexch == best.askexch)
+        {
+          if(state_q.time < input_q.time) replace = true;
+        } else if(o.ask < best.ask) replace = true;
+        if(replace)
         { 
           best.ask = o.ask;
           best.asksz = o.asksz;

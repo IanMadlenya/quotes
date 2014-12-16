@@ -25,7 +25,7 @@ install_github('paradigm4/load_tools')
 install_github('paradigm4/quotes')
 ```
 
-## Basic example
+## Contrived example
 
 The repository includes a fake OPRA data file called `opraqte\_test.csv.bz2`
 that was constructed to illustrate key ideas in the computation. The file
@@ -72,7 +72,7 @@ Note that the order sizes are not aggregated and simply represent the order size
 the best listed quote at that point.
 
 
-# Example use of the ScIDB plugin
+# Using the ScIDB plugin with the example data
 
 ## Load the example data into SciDB
 
@@ -180,4 +180,20 @@ time axis.
 
 Example:
 ```
+A="redimension(opraqte, <quote: quote null>[exch=0:255,256,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0], quote_best(quote) as quote)"
+
+B="redimension($A, <quote:quote null> [instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0], quote_accumulate(quote) as quote)"
+
+C="cumulate($B, quote_best(quote) as nbbo, ms)"
+
+iquery -aq "$C"
+{instrument_id,day,ms} nbbo
+{1,1412222400,1000} '3.00, 10, A, 5.00, 50, A,'
+{1,1412222400,2000} '2.00, 20, A, 4.00, 10, A,'
+{1,1412222400,3000} '4.00, 40, E, 5.00, 20, A,'
+{1,1412222400,4000} '5.00, 10, B, 5.00, 20, A,'
+{1,1412222400,5000} '5.00, 10, B, 6.00, 11, A,'
+{2,1412222400,1000} '1.00, 10, A, 6.00, 10, A,'
 ```
+Recall that the quote values display in the format bid, bidsz, bidexch, ask,
+asksz, askexch, and compare with the expected output above.
