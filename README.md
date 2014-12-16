@@ -14,7 +14,7 @@ illustrates the computation. The scripts require several additional SciDB plugin
 available on GitHub. The easisest way to install the plugins is to follow the
 instructions here:
 
-https://github.com/paradigm4/dev\_tools
+https://github.com/paradigm4/dev_tools
 
 And then run the following SciDB queries:
 ```
@@ -27,7 +27,7 @@ install_github('paradigm4/quotes')
 
 ## Contrived example
 
-The repository includes a fake OPRA data file called `opraqte\_test.csv.bz2`
+The repository includes a fake OPRA data file called `opraqte_test.csv.bz2`
 that was constructed to illustrate key ideas in the computation. The file
 contains 11 data rows of two option IDs for one ticker symbol as follows:
 ```
@@ -103,7 +103,7 @@ and 11 in the example data).
 The instrument_id axis is an integer that enumerates unique combinations
 of tkr and optid values. There are about 850,000 such ids among exchange
 traded US options. That enumeration is maintained in the auxiliary SciDB
-array called `opra\_instruments`.
+array called `opra_instruments`.
 
 Note that the data seqnum field can instead be used as a coorinate axis to
 separate data collisions on the other axes. However, seqnum is unique for
