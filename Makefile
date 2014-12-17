@@ -19,7 +19,7 @@ endif
 # Alternate and better way to specifiy the third party directory prefix
 # (better because it does not assume a fixed path)
 ifeq ($(SCIDB_THIRDPARTY_PREFIX),)
-  SCIDB_THIRDPARTY_PREFIX := $(SCIDB_3RDPATY)
+  SCIDB_THIRDPARTY_PREFIX := $(SCIDB_3RDPARTY)
 endif
 
 
