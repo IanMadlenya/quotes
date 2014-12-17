@@ -18,11 +18,11 @@ https://github.com/paradigm4/dev_tools
 
 And then run the following SciDB queries:
 ```
-load_library('dev_tools')
-install_github('paradigm4/superfunpack')
-install_github('paradigm4/chunk_unique')
-install_github('paradigm4/load_tools')
-install_github('paradigm4/quotes')
+iquery -aq "load_library('dev_tools')"
+iquery -aq "install_github('paradigm4/superfunpack')"
+iquery -aq "install_github('paradigm4/chunk_unique')"
+iquery -aq "install_github('paradigm4/load_tools')"
+iquery -aq "install_github('paradigm4/quotes')"
 ```
 
 ## Contrived example
