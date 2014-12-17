@@ -11,10 +11,17 @@ endif
 # will not be in the same place... but the 3rd party directory *will*
 # be, so build it using SCIDB_VER .
 ifeq ($(SCIDB_VER),)
-  SCIDB_3RDPARTY = $(SCIDB)/3rdparty
+  SCIDB_3RDPARTY = $(SCIDB)
 else
-  SCIDB_3RDPARTY = /opt/scidb/$(SCIDB_VER)/3rdparty
+  SCIDB_3RDPARTY = /opt/scidb/$(SCIDB_VER)
 endif
+
+# Alternate and better way to specifiy the third party directory prefix
+# (better because it does not assume a fixed path)
+ifeq ($(SCIDB_THIRDPARTY_PREFIX),)
+  SCIDB_THIRDPARTY_PREFIX := $(SCIDB_3RDPATY)
+endif
+
 
 INSTALL_DIR = $(SCIDB)/lib/scidb/plugins
 
@@ -26,11 +33,11 @@ CFLAGS = -pedantic -W -Wextra -Wall -Wno-variadic-macros -Wno-strict-aliasing \
          -Wno-system-headers -isystem  $(OPTIMIZED) -D_STDC_LIMIT_MACROS -std=c99
 CCFLAGS = -pedantic -W -Wextra -Wall -Wno-variadic-macros -Wno-strict-aliasing \
          -Wno-long-long -Wno-unused-parameter -fPIC $(OPTIMIZED) 
-INC = -I. -DPROJECT_ROOT="\"$(SCIDB)\"" -I"$(SCIDB_3RDPARTY)/boost/include/" \
+INC = -I. -DPROJECT_ROOT="\"$(SCIDB)\"" -I"$(SCIDB_THIRDPARTY)/3rdparty/boost/include/" \
       -I"$(SCIDB)/include" -I./extern
 
 LIBS = -shared -Wl,-soname,libquote.so -ldl -L. \
-       -L"$(SCIDB)/3rdparty/boost/lib" -L"$(SCIDB)/lib" \
+       -L"$(SCIDB_THIRDPARTY)/3rdparty/boost/lib" -L"$(SCIDB)/lib" \
        -Wl,-rpath,$(SCIDB)/lib:$(RPATH)
 
 SRCS = quote.cpp
