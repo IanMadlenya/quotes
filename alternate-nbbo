@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# This script presents an alternative nbbo computation that at its heart uses
+# cross_join and merge. It also needs the p4-only last_value aggregation
+# function. This approach avoids using the quote_accumulate aggregate in this
+# plugin, but it does need the quote_best aggregate (which would be required
+# in any case because the 'best' quote comparison is very custom).
+
+# We include this script for comparison purposes.
+
+iquery -aq "load_library('linear_algebra')" >/dev/null || exit 1
+
+# Data array:
+data="project(opraqte, quote)"
+
+# Step 1.
+# Aggregate out the synthetic dimension, computing best bid/ask prices over
+# that dimension returning an array with axes [exch, instrumend_id, day, ms].
+# Don't use aggregate for more than 1-d output, use redim instead.
+# x="aggregate($data, quote_best(quote) as quote, exch, instrument_id, day, ms)"
+x="redimension(opraqte,
+  <quote: quote null>
+  [exch=0:255,256,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0],
+  quote_best(quote) as quote)"
+
+
+# Step 2. For each time interval, fill in null quote values for exchanges
+# witout data.
+
+# 2a: Construct a plane of null quote values along the ms and instrument axes
+null_plane="apply(aggregate($data, count(*), instrument_id, ms), quote, quote(null))"
+
+# 2b: Construct a lattice of nulls of the same shape as the data array
+lattice="
+project(
+  cross_join(
+    aggregate($data, count(quote), exch, day),
+    $null_plane),
+  quote)
+"
+# Unfortunately, lattice is no longer conformable with $x and we need to
+# redimension it. I can't find a way around this
+lattice="redimension($lattice, <quote: quote null>[exch=0:255,256,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0])"
+
+# 2c: Construct a the fill-in array
+fill="merge( $x, $lattice )"
+
+# Step 3. Compute last-known best bid and ask prices at every time interval,
+# filling in the null values introduced in step 2.
+fill="cumulate($fill, last_value(quote) as quote, ms)"
+
+# Step 4. Compute the nbbo across the exchanges
+nbbo="aggregate($fill, quote_best(quote), instrument_id, day, ms)"
+
+# Run this!
+iquery -aq "$nbbo"
