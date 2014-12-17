@@ -11,7 +11,7 @@ used to compute NBBO.
 
 The example scripts illustrate loading a tiny fake OPRA data example designed to
 illustrate the computation. The scripts require several additional SciDB plugins
-available on GitHub. The easisest way to install the plugins is to follow the
+available on GitHub. The easiest way to install the plugins is to follow the
 instructions here:
 
 https://github.com/paradigm4/dev_tools
@@ -114,7 +114,7 @@ of tkr and optid values. There are about 850,000 such ids among exchange
 traded US options. That enumeration is maintained in the auxiliary SciDB
 array called `opra_instruments`.
 
-Note that the data seqnum field can instead be used as a coorinate axis to
+Note that the data seqnum field can instead be used as a coordinate axis to
 separate data collisions on the other axes. However, seqnum is unique for
 every data element. Since there aren't many collisions (there should not be
 any in practice, but there seem to be somehow in typical data), use of the
