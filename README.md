@@ -3,14 +3,14 @@ quotes
 
 An OPRA options nbbo/book consolidation example. The example computes national
 best bid and ask prices (NBBO) across quotes on one or more exchanges. Each
-exchange quote is assumed to represent that exchanges best bid and ask price.
+exchange quote is assumed to represent that exchange's best bid and ask price.
 
 The example program is a SciDB plugin that includes a 'quote' user-defined type,
 several supporting functions for working with the quote type and two aggregates
 used to compute NBBO.
 
-The example scripts illustrate loading a tiny fake OPRA data example that
-illustrates the computation. The scripts require several additional SciDB plugins
+The example scripts illustrate loading a tiny fake OPRA data example designed to
+illustrate the computation. The scripts require several additional SciDB plugins
 available on GitHub. The easisest way to install the plugins is to follow the
 instructions here:
 
@@ -44,9 +44,16 @@ contains 11 data rows of two option IDs for one ticker symbol as follows:
 2014-10-02 TEST     2 00:00:01.000   1    10   6    10    A   68   2c    300
 2014-10-02 TEST     2 00:00:01.000   1    20   4    10    A   67   2c    400
 ```
-The first 9 rows illustrate normal NBBO computation and will produce 5 rows
-of output, one for each reported time period (the many available values at
-time=00:00:03.00 will be coalesced by the program into a best value).
+The NBBO computation is outlined:
+
+1. At each point in time where data are present for any exchange, look up for
+*all* exchanges the most recently available quotes.
+2. Record among all exchanges the best bid price and its exchange and the
+best ask price and its exchange.
+
+The first 9 rows of the fake data illustrate normal NBBO computation and will
+produce 5 rows of output, one for each reported time period (the many available
+values at time=00:00:03.00 will be coalesced by the program into a best value).
 
 The last 2 rows illustrate a special case of a time collision on the same
 exchange (with different quote values, something that should not technically
