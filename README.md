@@ -121,7 +121,8 @@ any in practice, but there seem to be somehow in typical data), use of the
 synthetic dimension makes chunk size selection simpler (most all values are
 in coordinate position zero in the synthetic dimension).
 
-Once loaded, the data in SciDB look like, where the 'quote' values are
+Once loaded, the data in SciDB look like the following output,
+where the 'quote' values are
 displayed with the format "bid, bidsz, bidexch, ask, asksz, askexch,":
 ```
 {synth,exch,instrument_id,day,ms} quote,flag,feed,seqnum
