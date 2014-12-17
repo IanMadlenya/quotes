@@ -21,16 +21,19 @@ echo "1. ${output}  data array"
 echo "2. ${sym}  unique instrument indexing array"
 echo
 
+# Load the required plugins
 iquery -naq "load_library('load_tools')" >/dev/null || bail "Missing load_tools plugin"
 iquery -naq "load_library('cu')" >/dev/null || bail "Missing cu plugin"
 iquery -naq "load_library('superfunpack')" >/dev/null || bail "Missing superfunpack plugin"
 iquery -naq "load_library('quote')" >/dev/null || bail "Missing quote type and aggregates"
 
+# Remove the staging input array
 iquery -naq "remove($x)" >/dev/null 2>&1
 
 # Number of fields
 N=12
 
+# Decompress the input file into a fifo
 rm -rf /dev/shm/$x &&  mkfifo /dev/shm/$x
 # Fork decompression and add a signal handler to clean up after user interrupt
 pbzip2 -d -c $1 | tail -n +2 > /dev/shm/$x &
@@ -40,8 +43,6 @@ trap '{ killall -9 %1; exit 1; }' INT
 LOAD="parse(split('/dev/shm/$x','lines_per_chunk=1000000'), 'num_attributes=$N', 'attribute_delimiter=,', 'chunk_size=1000000')"
 
 # This is a custom program for attributes from the opraqte file type.
-
-
 ATTR="
 project(
 apply(
@@ -81,7 +82,7 @@ seqnum, dcast(_seqnum, int64(null))
 day,ms,tkr,optid,tm,quote,exch,flag,feed,seqnum
 )"
 
-echo "Loading flat data file $1"
+echo "Loading flat data file $1 into temporary array $x"
 time iquery -naq "store($ATTR, $x)" || exit 1
 
 
