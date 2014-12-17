@@ -49,7 +49,9 @@ The NBBO computation is outlined:
 1. At each point in time where data are present for any exchange, look up for
 *all* exchanges the most recently available quotes.
 2. Record among all exchanges the best bid price and its exchange and the
-best ask price and its exchange.
+best ask price and its exchange. If more than one exchange exhibits matching
+best bid or ask price, pick one (this behavior can be changed to report all
+matching exchanges).
 
 The first 9 rows of the fake data illustrate normal NBBO computation and will
 produce 5 rows of output, one for each reported time period (the many available
