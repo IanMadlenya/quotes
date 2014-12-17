@@ -10,13 +10,13 @@ several supporting functions for working with the quote type and two aggregates
 used to compute NBBO.
 
 The example scripts illustrate loading a tiny fake OPRA data example designed to
-illustrate the computation. The scripts require several additional SciDB plugins
+illustrate the computation. The scripts require several add-on SciDB plugins
 available on GitHub. The easiest way to install the plugins is to follow the
 instructions here:
 
 https://github.com/paradigm4/dev_tools
 
-And then run the following SciDB queries:
+and then run the following SciDB queries:
 ```
 iquery -aq "load_library('dev_tools')"
 iquery -aq "install_github('paradigm4/superfunpack')"
