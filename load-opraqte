@@ -40,7 +40,7 @@ pbzip2 -d -c $1 | tail -n +2 > /dev/shm/$x &
 trap '{ killall -9 %1; exit 1; }' INT
 
 # This is the load query
-LOAD="parse(split('/dev/shm/$x','lines_per_chunk=1000000'), 'num_attributes=$N', 'attribute_delimiter=,', 'chunk_size=1000000')"
+LOAD="parse(split('/dev/shm/$x','lines_per_chunk=100000'), 'num_attributes=$N', 'attribute_delimiter=,', 'chunk_size=100000')"
 
 # This is a custom program for attributes from the opraqte file type.
 ATTR="
@@ -65,7 +65,7 @@ $LOAD,
  error: string NULL>
 [source_instance_id=0:*,1,0,
  chunk_no=0:*,1,0,
- line_no=0:*,1000000,0]
+ line_no=0:*,100000,0]
 ),
 day,int64(strpftime(date,'%Y-%m-%d','%s'))),
 ms,(int64(strpftime(date + ' ' + tm,'%Y-%m-%d %H:%M:%S','%s'))-day)*1000 + int64(rsub(tm,'s/.*\.//'))),
@@ -93,7 +93,7 @@ time iquery -naq "store($ATTR, $x)" || exit 1
 # Munge the ticker and option id into a single instrument_id for indexing.
 y="apply($x,instrument,tkr + ':' + string(optid))"
 # This table may already exist, if not we create it.
-iquery -naq "create_array(${sym}, <instrument:string> [i=0:*,1000000,0])" 2>/dev/null
+iquery -naq "create_array(${sym}, <instrument:string> [i=0:*,100000,0])" 2>/dev/null
 s="project($y,instrument)"
 # This filters out just the new tkr:optid indices, and merges them into the
 # instruments table:
@@ -101,7 +101,7 @@ idx=$(iquery -ocsv -aq "aggregate(apply(project(${sym},instrument),_,i), max(_))
 idx=$(($idx + 1))
 s_new="project(filter(index_lookup($s as A, ${sym} as B, A.instrument, instrument_id), is_null(instrument_id)),instrument)"
 s_new="uniq(sort(cu($s_new)))"
-s_new="cast(redimension(apply($s_new, j, i + $idx),<instrument:string>[j=0:*,1000000,0]),<instrument:string>[i=0:*,1000000,0])"
+s_new="cast(redimension(apply($s_new, j, i + $idx),<instrument:string>[j=0:*,100000,0]),<instrument:string>[i=0:*,100000,0])"
 echo "Merging new instrument indices, here is the number of unique instruments prior to merge:"
 iquery -aq "op_count(${sym})"
 time iquery -naq "insert($s_new, ${sym})"
@@ -117,7 +117,7 @@ iquery -naq "create_array($output,
  flag:string null,
  feed:string null,
  seqnum:int64 null>
-[synth=0:999,1000,0, exch=0:255, 256, 0, instrument_id=0:*, 2000, 0, day=0:*, 1, 0, ms=0:86399999, 600000, 0])" 2>/dev/null
+[synth=0:999,1000,0, exch=0:255, 1, 0, instrument_id=0:*, 2000, 0, day=0:*, 1, 0, ms=0:86399999, 600000, 0])" 2>/dev/null
 
 time iquery -naq "insert(redimension($y, $output), $output)" || exit 1
 

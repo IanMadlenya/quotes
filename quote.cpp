@@ -56,7 +56,7 @@ static void quote_to_string(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q = deserialize(args[0]->data());
+  quotes q; deserialize(args[0]->data(), q);
   if(q.list.size()>0)
   {
     char ans[4096];
@@ -89,7 +89,7 @@ static void quote_bid(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q = deserialize(args[0]->data());
+  quotes q; deserialize(args[0]->data(), q);
   opraquote o = q.list.at(0);
   res->setFloat(o.bid);
 }
@@ -100,7 +100,7 @@ static void quote_bidsz(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q = deserialize(args[0]->data());
+  quotes q; deserialize(args[0]->data(), q);
   opraquote o = q.list.at(0);
   res->setInt64(o.bidsz);
 }
@@ -111,7 +111,7 @@ static void quote_bidexch(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q = deserialize(args[0]->data());
+  quotes q ; deserialize(args[0]->data(), q);
   opraquote o = q.list.at(0);
   res->setChar(o.bidexch);
 }
@@ -122,7 +122,7 @@ static void quote_ask(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q = deserialize(args[0]->data());
+  quotes q ; deserialize(args[0]->data(), q);
   opraquote o = q.list.at(0);
   res->setFloat(o.ask);
 }
@@ -133,7 +133,7 @@ static void quote_asksz(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q = deserialize(args[0]->data());
+  quotes q ; deserialize(args[0]->data(), q);
   opraquote o = q.list.at(0);
   res->setInt64(o.asksz);
 }
@@ -144,7 +144,7 @@ static void quote_askexch(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q = deserialize(args[0]->data());
+  quotes q ; deserialize(args[0]->data(), q);
   opraquote o = q.list.at(0);
   res->setChar(o.askexch);
 }
@@ -155,7 +155,7 @@ static void quote_time(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q = deserialize(args[0]->data());
+  quotes q ; deserialize(args[0]->data(), q);
   res->setInt64(q.time);
 }
 

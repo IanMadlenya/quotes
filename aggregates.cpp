@@ -100,8 +100,8 @@ public:
     void accumulate(Value& state, Value const& input)
     {
       if(input.isNull()) return;
-      quotes state_q = deserialize(state.data());
-      quotes input_q = deserialize(input.data());
+      quotes state_q ; deserialize(state.data(), state_q);
+      quotes input_q ; deserialize(input.data(), input_q);
 // Find the best quote
       opraquote best = state_q.list.at(0);
       opraquote o;
@@ -144,7 +144,7 @@ public:
 
     void finalResult(Value& result, Value const& state)
     {
-      quotes state_q = deserialize(state.data());
+      quotes state_q ; deserialize(state.data(), state_q);
       serialize_to_scidb_value(state_q, result);
     }
 };
@@ -195,8 +195,8 @@ public:
     void accumulate(Value& state, Value const& input)
     {
       if(input.isNull()) return;
-      quotes state_q = deserialize(state.data());
-      quotes input_q = deserialize(input.data());
+      quotes state_q ; deserialize(state.data(), state_q);
+      quotes input_q ; deserialize(input.data(), input_q);
       opraquote o;
       for(unsigned int i=0;i<input_q.list.size();++i)
       {
@@ -223,7 +223,7 @@ public:
 
     void finalResult(Value& result, Value const& state)
     {
-      quotes state_q = deserialize(state.data());
+      quotes state_q ; deserialize(state.data(), state_q);
       serialize_to_scidb_value(state_q, result);
     }
 };

@@ -40,9 +40,8 @@ void serialize_to_scidb_value(quotes q, Value &v)
   if(len>0) memcpy(p, q.list.data(), len*sizeof(opraquote));
 }
 
-quotes deserialize(void *v)
+void deserialize(void *v, quotes &q)
 {
-  quotes q;
   char *p = (char *)v;
   size_t N;
   memcpy(&N, p, sizeof(size_t));
@@ -56,5 +55,4 @@ quotes deserialize(void *v)
     q.list.resize(N);
     memcpy(q.list.data(), p, N*sizeof(opraquote));
   }
-  return q;
 }

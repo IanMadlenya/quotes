@@ -19,4 +19,4 @@ struct quotes
 
 void serialize_to_scidb_valuep(quotes q, scidb::Value *v);
 void serialize_to_scidb_value(quotes q, scidb::Value &v);
-quotes deserialize(void *v);
+void deserialize(void *v, quotes &q);
