@@ -2,7 +2,7 @@
 
 A="redimension(opraqte,
      <quote: quote null>
-     [exch=0:255,256,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0],
+     [exch=0:255,1,0,instrument_id=0:*,2000,0,day=0:*,1,0,ms=0:86399999,600000,0],
      quote_best(quote) as quote)"
 
 B="redimension($A,
