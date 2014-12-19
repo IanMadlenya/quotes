@@ -117,7 +117,7 @@ iquery -naq "create_array($output,
  flag:string null,
  feed:string null,
  seqnum:int64 null>
-[synth=0:999,1000,0, exch=0:255, 1, 0, instrument_id=0:*, 2000, 0, day=0:*, 1, 0, ms=0:86399999, 600000, 0])" 2>/dev/null
+[synth=0:999,1000,0, exch=0:255, 1, 0, instrument_id=0:*, 100, 0, day=0:*, 1, 0, ms=0:86399999, 600000, 0])" 2>/dev/null
 
 time iquery -naq "insert(redimension($y, $output), $output)" || exit 1
 
