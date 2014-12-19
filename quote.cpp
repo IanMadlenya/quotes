@@ -3,7 +3,7 @@
  *
  * @authors B. W. Lewis <blewis@paradigm4.com>,
  * @brief An example user-defined type called 'quote' that represents
- * one or more opra quotes.
+ * an opra quote.
  */
 #include <boost/assign.hpp>     // Required by the list_of macro used to register functions
 // Minimum SciDB headers required for user-defined types
@@ -35,12 +35,8 @@ static void new_quote(const Value** args, Value* res, void*)
   o.asksz = args[3]->getInt64();
   o.bidexch = args[4]->getChar();
   o.askexch = args[4]->getChar();
-
-  quotes q;
-  q.list.push_back(o);
-  q.time = args[5]->getInt64();
-
-  serialize_to_scidb_valuep(q, res);
+  o.time = args[5]->getInt64();
+  res->setData(&o, sizeof(opraquote));
 }
 
 // an empty constructor is required of all types
@@ -56,29 +52,12 @@ static void quote_to_string(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q; deserialize(args[0]->data(), q);
-  if(q.list.size()>0)
-  {
-    char ans[4096];
-    memset(ans,0,4096);
-    char *p = ans;
-    size_t l;
-    opraquote o;
-    for(unsigned int j=0;j < q.list.size(); ++j)
-    {
-      o = q.list.at(j);
-      l = 4096 - (p-ans);
-      if(l>0)
-      {
-        p = p + snprintf(p, l, "%.2f, %ld, %c, %.2f, %ld, %c,",
-                       o.bid, o.bidsz, o.bidexch, o.ask, o.asksz, o.askexch);
-      }
-    }
-    res->setString(ans);
-  } else
-  {
-    res->setString("");
-  }
+  opraquote *o = (opraquote *)args[0]->data();
+  char ans[4096];
+  memset(ans,0,4096);
+  snprintf(ans, 4096, "%.2f, %ld, %c, %.2f, %ld, %c,",
+           o->bid, o->bidsz, o->bidexch, o->ask, o->asksz, o->askexch);
+  res->setString(ans);
 }
 
 // Convenience functions to pick out parts of the struct
@@ -89,9 +68,8 @@ static void quote_bid(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q; deserialize(args[0]->data(), q);
-  opraquote o = q.list.at(0);
-  res->setFloat(o.bid);
+  opraquote *o = (opraquote *)args[0]->data();
+  res->setFloat(o->bid);
 }
 static void quote_bidsz(const Value** args, Value* res, void*)
 {
@@ -100,9 +78,8 @@ static void quote_bidsz(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q; deserialize(args[0]->data(), q);
-  opraquote o = q.list.at(0);
-  res->setInt64(o.bidsz);
+  opraquote *o = (opraquote *)args[0]->data();
+  res->setInt64(o->bidsz);
 }
 static void quote_bidexch(const Value** args, Value* res, void*)
 {
@@ -111,9 +88,8 @@ static void quote_bidexch(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q ; deserialize(args[0]->data(), q);
-  opraquote o = q.list.at(0);
-  res->setChar(o.bidexch);
+  opraquote *o = (opraquote *)args[0]->data();
+  res->setChar(o->bidexch);
 }
 static void quote_ask(const Value** args, Value* res, void*)
 {
@@ -122,9 +98,8 @@ static void quote_ask(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q ; deserialize(args[0]->data(), q);
-  opraquote o = q.list.at(0);
-  res->setFloat(o.ask);
+  opraquote *o = (opraquote *)args[0]->data();
+  res->setFloat(o->ask);
 }
 static void quote_asksz(const Value** args, Value* res, void*)
 {
@@ -133,9 +108,8 @@ static void quote_asksz(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q ; deserialize(args[0]->data(), q);
-  opraquote o = q.list.at(0);
-  res->setInt64(o.asksz);
+  opraquote *o = (opraquote *)args[0]->data();
+  res->setInt64(o->asksz);
 }
 static void quote_askexch(const Value** args, Value* res, void*)
 {
@@ -144,9 +118,8 @@ static void quote_askexch(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q ; deserialize(args[0]->data(), q);
-  opraquote o = q.list.at(0);
-  res->setChar(o.askexch);
+  opraquote *o = (opraquote *)args[0]->data();
+  res->setChar(o->askexch);
 }
 static void quote_time(const Value** args, Value* res, void*)
 {
@@ -155,8 +128,8 @@ static void quote_time(const Value** args, Value* res, void*)
     res->setNull();
     return;
   }
-  quotes q ; deserialize(args[0]->data(), q);
-  res->setInt64(q.time);
+  opraquote *o = (opraquote *)args[0]->data();
+  res->setInt64(o->time);
 }
 
 // Register the type, functions and implicit converter functions 

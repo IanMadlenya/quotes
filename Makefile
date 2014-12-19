@@ -49,8 +49,7 @@ clean:
 
 libquote.so: $(SRCS)
 	@if test ! -d "$(SCIDB)"; then echo  "Error. Try:\n\nmake SCIDB=<PATH TO SCIDB INSTALL PATH>"; exit 1; fi
-	$(CXX) $(CCFLAGS) $(INC) -o serialize.o -c serialize.cpp
 	$(CXX) $(CCFLAGS) $(INC) -o quote.o -c quote.cpp
 	$(CXX) $(CCFLAGS) $(INC) -o aggregates.o -c aggregates.cpp
-	$(CXX) $(CCFLAGS) $(INC) -o libquote.so plugin.cpp serialize.o aggregates.o quote.o $(LIBS)
+	$(CXX) $(CCFLAGS) $(INC) -o libquote.so plugin.cpp aggregates.o quote.o $(LIBS)
 	@echo "Now copy *.so to $(INSTALL_DIR) on all your SciDB nodes, and restart SciDB."

@@ -79,7 +79,6 @@ public:
 
     void initializeState(Value& state)
     {
-      quotes q;
       opraquote o;
       o.bid = -1;
       o.bidsz = 0;
@@ -87,133 +86,40 @@ public:
       o.asksz = 0;
       o.bidexch = 0;
       o.askexch = 0;
-      q.list.push_back(o);
-      q.time = 0;
-      for(int j=0;j<256;++j) q.map[j]=-1;
-      serialize_to_scidb_value(q, state);
+      o.time = 0;
+      state.setData(&o, sizeof(opraquote));
     }
 
-// The reducer will produce a state value with one quote in it, the best.  It
-// might have different bid and ask exchanges (unlike the input quotes). That
-// is, we compute the national best bid and offer among the input quotes.
-// This is designed to be used with cumulate.
     void accumulate(Value& state, Value const& input)
     {
       if(input.isNull()) return;
-      quotes state_q ; deserialize(state.data(), state_q);
-      quotes input_q ; deserialize(input.data(), input_q);
 // Find the best quote
-      opraquote best = state_q.list.at(0);
-      opraquote o;
-      bool replace;
-      for(unsigned int j=0;j < input_q.list.size(); ++j)
-      { 
-        replace = false;
-        o = input_q.list.at(j);
-        if(o.bidexch == best.bidexch)
-        {
-          if(state_q.time < input_q.time) replace = true;
-        } else if(o.bid > best.bid) replace = true;
-        if(replace)
-        { 
-          best.bid = o.bid;
-          best.bidsz = o.bidsz;
-          best.bidexch = o.bidexch;
-        }
-        replace = false;
-        if(o.askexch == best.askexch)
-        {
-          if(state_q.time < input_q.time) replace = true;
-        } else if(o.ask < best.ask) replace = true;
-        if(replace)
-        { 
-          best.ask = o.ask;
-          best.asksz = o.asksz;
-          best.askexch = o.askexch;
-        }
-      }
-      state_q.list.at(0) = best;
-      if(input_q.time > state_q.time) state_q.time = input_q.time;
-      serialize_to_scidb_value(state_q, state);
-    }
-
-    void merge(Value& dstState, Value const& srcState)
-    {
-      accumulate(dstState, srcState);
-    }
-
-    void finalResult(Value& result, Value const& state)
-    {
-      quotes state_q ; deserialize(state.data(), state_q);
-      serialize_to_scidb_value(state_q, result);
-    }
-};
-
-
-
-class quote_accumulator : public Aggregate
-{
-private:
-
-public:
-    quote_accumulator(const string& name, Type const& aggregateType):
-        Aggregate(name, aggregateType, aggregateType)
-    {
-    }
-
-    virtual AggregatePtr clone() const
-    {
-        return AggregatePtr(new quote_accumulator(getName(), getAggregateType()));
-    }
-
-    AggregatePtr clone(Type const& aggregateType) const
-    {
-        return AggregatePtr(new quote_accumulator(getName(), aggregateType));
-    }
-
-    bool ignoreNulls() const
-    {
-        return true;
-    }
-
-    Type getStateType() const
-    {
-        return getAggregateType();
-    }
-
-    void initializeState(Value& state)
-    {
-      quotes q;
-      q.time = 0;
-      for(int j=0;j<256;++j) q.map[j]=-1;
-      serialize_to_scidb_value(q, state);
-    }
-
-// Add the input quotes to the state, over-writing existing quotes
-// on the same bid exchange with newer values. Note that this aggregate
-// assumes that the bid and ask exchanges are the same (from a bbo quote).
-    void accumulate(Value& state, Value const& input)
-    {
-      if(input.isNull()) return;
-      quotes state_q ; deserialize(state.data(), state_q);
-      quotes input_q ; deserialize(input.data(), input_q);
-      opraquote o;
-      for(unsigned int i=0;i<input_q.list.size();++i)
+      opraquote *best = (opraquote *)state.data();
+      opraquote *o = (opraquote *)input.data();
+      bool replace = false;
+      if(o->bidexch == best->bidexch)
       {
-        o = input_q.list.at(i);
-        int k = (int)o.bidexch;
-        int j = state_q.map[k];                          // Check for collision
-        if(j > -1)
-        {
-          if(input_q.time > state_q.time) state_q.list.at(j) = o; // take newest val
-        } else                                        // No collision, just add
-        {
-          state_q.list.push_back(o);
-          state_q.map[k] = state_q.list.size()-1;
-        }
+        if(best->time < o->time) replace = true;
+      } else if(o->bid > best->bid) replace = true;
+      if(replace)
+      { 
+        best->bid = o->bid;
+        best->bidsz = o->bidsz;
+        best->bidexch = o->bidexch;
       }
-      if(input_q.time > state_q.time) state_q.time = input_q.time;
-      serialize_to_scidb_value(state_q, state);
+      replace = false;
+      if(o->askexch == best->askexch)
+      {
+        if(best->time < o->time) replace = true;
+      } else if(o->ask < best->ask) replace = true;
+      if(replace)
+      { 
+        best->ask = o->ask;
+        best->asksz = o->asksz;
+        best->askexch = o->askexch;
+      }
+      if(o->time > best-> time) best->time = o->time;
+      state.setData(best, sizeof(opraquote));
     }
 
     void merge(Value& dstState, Value const& srcState)
@@ -223,11 +129,9 @@ public:
 
     void finalResult(Value& result, Value const& state)
     {
-      quotes state_q ; deserialize(state.data(), state_q);
-      serialize_to_scidb_value(state_q, result);
+      result.setData((opraquote *)state.data(), sizeof(opraquote));
     }
 };
-
 
 
 vector<AggregatePtr> _aggregates;
@@ -242,7 +146,6 @@ public:
     quote_accumulatorGeneratorInstance()
     {
         // register the aggregate
-        _aggregates.push_back(AggregatePtr(new quote_accumulator("quote_accumulate", TypeLibrary::getType(TID_VOID))));
         _aggregates.push_back(AggregatePtr(new quote_reducer("quote_best", TypeLibrary::getType(TID_VOID))));
     }
 } _aggregateGeneratorInstance;
