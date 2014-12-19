@@ -216,6 +216,9 @@ x="aggregate(opraqte, quote_best(quote) as quote, exch, instrument_id, day, ms)"
 # witout data.
 
 # 2a: Construct a plane of null quote values along the ms and instrument axes
+# If you are interested in a different set of time values than all the time
+# values in the data itself, for example a subset of them, then change this
+# array to reflect the time points of interest.
 null_plane="apply(aggregate($data, count(*), instrument_id, ms), quote, quote(null))"
 
 # 2b: Construct a lattice of nulls of the same shape as the data array
