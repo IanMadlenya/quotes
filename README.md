@@ -228,7 +228,13 @@ project(
 "
 # Unfortunately, lattice is no longer conformable with $x and we need to
 # redimension it. I can't find a way around this
-lattice="redimension($lattice, <quote: quote null>[exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0])"
+lattice="
+redimension($lattice, 
+            <quote: quote null>
+            [exch=0:255,1,0,
+             instrument_id=0:*,100,0,
+             day=0:*,1,0,
+             ms=0:86399999,600000,0])"
 
 # 2c: Construct the fill-in array
 fill="merge( $x, $lattice )"
