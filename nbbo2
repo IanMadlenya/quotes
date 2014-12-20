@@ -29,11 +29,7 @@ filter="project($tkr_filter, quote)"
 # integrate out the synthetic dimension. Store this into a temp array.
 tmp="_temp"
 iquery -naq "remove($tmp)" 2>/dev/null
-<<<<<<< HEAD
 iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0], true)"
-=======
-iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0], 'TEMP')"
->>>>>>> 6a1fa5e26bb82a2de1f5139838ef00442495d825
 # Apply filters and integrate out the synthetic dimension:
 echo "Applying filters"
 time iquery -naq "
@@ -75,10 +71,5 @@ nbbo="aggregate($fill, quote_best(quote) as nbbo, instrument_id, day, ms)"
 # Filter on the points of interest
 ans="project(cross_join($nbbo as A, $ms_strip as B, A.ms, B.ms),nbbo)"
 
-<<<<<<< HEAD
 # Run it!
 time iquery -aq "op_count($ans)"
-=======
-# Run this!
-iquery -aq "$ans"
->>>>>>> 6a1fa5e26bb82a2de1f5139838ef00442495d825
