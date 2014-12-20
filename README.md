@@ -6,8 +6,9 @@ best bid and ask prices (NBBO) across quotes on one or more exchanges. Each
 exchange quote is assumed to represent that exchange's best bid and ask price.
 
 The example program is a SciDB plugin that includes a 'quote' user-defined type,
-several supporting functions for working with the quote type and two aggregates
-used to compute NBBO.
+several supporting functions for working with the quote type and supporting
+aggregate function 'quote_best' to compute the best bid and offer between
+two quotes.
 
 The example scripts illustrate loading a tiny fake OPRA data example designed to
 illustrate the computation. The scripts require several add-on SciDB plugins
@@ -82,6 +83,23 @@ the best listed quote at that point.
 
 
 # Using the ScIDB plugin with the example data
+
+## Description of the 'quote' user-defined type and functions
+The plugin defines the 'quote' type that consists of the fields:
+
+* bid (float)
+* bidsz (int64)
+* bidexch (char)
+* ask (float)
+* asksz (int64)
+* askexch (char)
+* ms time stamp (int64)
+
+The `quote_best` aggregation function takes two quotes and returns a new quote
+with the best bid and corresponding bidsz and bidexch, and the best ask and its
+corresponding asksz and askexch, unless the two quotes have the same ms time
+stamp in which case the newest timestamp takes precedence, and ignoring null
+quotes.
 
 ## Load the example data into SciDB
 
