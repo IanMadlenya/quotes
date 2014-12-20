@@ -71,3 +71,5 @@ nbbo="aggregate($fill, quote_best(quote) as nbbo, instrument_id, day, ms)"
 # Filter on the points of interest
 ans="project(cross_join($nbbo as A, $ms_strip as B, A.ms, B.ms),nbbo)"
 
+# Run this!
+iquery -aq "$ans"
