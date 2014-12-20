@@ -29,7 +29,7 @@ filter="project($tkr_filter, quote)"
 # integrate out the synthetic dimension. Store this into a temp array.
 tmp="_temp"
 iquery -naq "remove($tmp)" 2>/dev/null
-iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:799,100,0,day=0:1412222400,1,0,ms=0:86399999,600000,0], 'TEMP')"
+iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0], 'TEMP')"
 # Apply filters and integrate out the synthetic dimension:
 echo "Applying filters"
 time iquery -naq "
