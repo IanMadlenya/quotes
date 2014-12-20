@@ -92,16 +92,17 @@ time iquery -naq "store($ATTR, $x)" || exit 1
 
 # Munge the ticker and option id into a single instrument_id for indexing.
 y="apply($x,instrument,tkr + ':' + string(optid))"
-# This table may already exist, if not we create it.
-iquery -naq "create_array(${sym}, <instrument:string> [i=0:*,100000,0])" 2>/dev/null
+# This table may already exist, if not we create it. The chunk size here should
+# match the chunk size used in the main data array.
+iquery -naq "create_array(${sym}, <instrument:string> [instrument_id=0:*,100,0])" 2>/dev/null
 s="project($y,instrument)"
 # This filters out just the new tkr:optid indices, and merges them into the
 # instruments table:
-idx=$(iquery -ocsv -aq "aggregate(apply(project(${sym},instrument),_,i), max(_))" | tail -n 1)
+idx=$(iquery -ocsv -aq "aggregate(apply(project(${sym},instrument),_,instrument_id), max(_))" | tail -n 1)
 idx=$(($idx + 1))
 s_new="project(filter(index_lookup($s as A, ${sym} as B, A.instrument, instrument_id), is_null(instrument_id)),instrument)"
 s_new="uniq(sort(cu($s_new)))"
-s_new="cast(redimension(apply($s_new, j, i + $idx),<instrument:string>[j=0:*,100000,0]),<instrument:string>[i=0:*,100000,0])"
+s_new="cast(redimension(apply($s_new, j, i + $idx),<instrument:string>[j=0:*,100,0]),<instrument:string>[instrument_id=0:*,100,0])"
 echo "Merging new instrument indices, here is the number of unique instruments prior to merge:"
 iquery -aq "op_count(${sym})"
 time iquery -naq "insert($s_new, ${sym})"

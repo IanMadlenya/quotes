@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# NBBO example workflow
+# 1. Select a specific day
+# 2. Select all instruments for a given tkr symbol
+# 3. Select a given list of time points over the day (in milliseconds)
+#
+# Task: Compute previous two, current and following two NBBO values at
+# the selected time points
+
+# 1. Select a day
+day="2014-10-02" 
+
+# Convert calendar day to POSIX day value and construct between filter
+pday=$(iquery -ocsv -aq "project(apply(build(<s:string>[i=1:1,1,0],'$day'),day,strpftime(s,'%Y-%m-%d','%s')),day)" | tail -n 1 | tr -d "'")
+day_filter="between(opraqte,null,null,null,$pday,null, null,null,null,$pday,null)"
+
+# 2. Select tkr
+tkr="TEST"
+# Build a cross_join filter expression for the instrument tkr:optid indexing
+# array
+tkr_filter="filter(opra_instruments, regex(instrument,'^$tkr:.*'))"
+tkr_filter="cross_join($day_filter as A, $tkr_filter as B, A.instrument_id, B.instrument_id)"
+
+# project away all but the quote attribute
+filter="project($tkr_filter, quote)"
+
+# Now we filter the main data array (opraqte) by tkr and day, and also
+# integrate out the synthetic dimension. Store this into a temp array.
+tmp="_temp"
+iquery -naq "remove($tmp)" 2>/dev/null
+iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:799,100,0,day=0:1412222400,1,0,ms=0:86399999,600000,0], 'TEMP')"
+# Apply filters and integrate out the synthetic dimension:
+echo "Applying filters"
+time iquery -naq "
+store(
+  aggregate($filter, quote_best(quote) as quote, exch, instrument_id, day, ms),
+$tmp)
+"
+
+# 3. Select a set of time points of interest
+points="44479832, 33802969, 37466677, 44290884"
+# Build a strip of null quotes at these points
+ms_strip="project(apply(redimension(build(<ms:int64>[i=1:*,10000,0],'{1}[$points]',true),<i:int64>[ms=0:86399999,600000,0]),quote,quote(null)), quote)"
+
+# Construct a plane lattice of null points by instrument_id and ms_strip
+null_plane="project(cross_join(aggregate($tmp, count(*) as count, instrument_id), $ms_strip),quote)"
+
+# Construct a lattice of null  points conformable with the data array
+lattice="
+project(
+  cross_join(
+    aggregate($tmp, count(quote), exch, day),
+    $null_plane),
+quote)
+"
+# Unfortunately, lattice is no longer conformable with $x and we need to
+# redimension it. This adds some cost to the query.
+lattice="redimension($lattice, <quote: quote null>[exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0])"
+
+# Construct the fill-in array, merging the lattice with the data
+fill="merge( $tmp, $lattice )"
+
+# Compute last-known best bid and ask prices at every time interval,
+# filling in the null values introduced in step 2.
+fill="cumulate($fill, last_value(quote) as quote, ms)"
+
+# Compute the nbbo across the exchanges
+nbbo="aggregate($fill, quote_best(quote) as nbbo, instrument_id, day, ms)"
+
+# Filter on the points of interest
+ans="project(cross_join($nbbo as A, $ms_strip as B, A.ms, B.ms),nbbo)"
+
