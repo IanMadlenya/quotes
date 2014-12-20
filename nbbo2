@@ -1,4 +1,10 @@
 #!/bin/bash
+major=$(scidb --ver | head -n 1 | sed -e "s/.* //" | cut -d '.' -f 1)
+minor=$(scidb --ver | head -n 1 | sed -e "s/.* //" | cut -d '.' -f 2)
+TMP='true'
+if test $major -le 14 -a $minor -lt 9; then
+  TMP="'TEMP'"
+fi
 
 # NBBO example workflow
 # 1. Select a specific day
@@ -16,7 +22,7 @@ pday=$(iquery -ocsv -aq "project(apply(build(<s:string>[i=1:1,1,0],'$day'),day,s
 day_filter="between(opraqte,null,null,null,$pday,null, null,null,null,$pday,null)"
 
 # 2. Select tkr
-tkr="AAPL"
+tkr="TEST"
 # Build a cross_join filter expression for the instrument tkr:optid indexing
 # array
 tkr_filter="filter(opra_instruments, regex(instrument,'^$tkr:.*'))"
@@ -29,9 +35,9 @@ filter="project($tkr_filter, quote)"
 # integrate out the synthetic dimension. Store this into a temp array.
 tmp="_temp"
 iquery -naq "remove($tmp)" 2>/dev/null
-iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0], true)"
+iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0], $TMP)"
 # Apply filters and integrate out the synthetic dimension:
-echo "Applying filters"
+echo "Applying filters and aggregating out synthetic dimension"
 time iquery -naq "
 store(
   aggregate($filter, quote_best(quote) as quote, exch, instrument_id, day, ms),
@@ -40,8 +46,14 @@ $tmp)
 
 # 3. Select a set of time points of interest
 points="44479832, 33802969, 37466677, 44290884"
+
 # Build a strip of null quotes at these points
-ms_strip="project(apply(redimension(build(<ms:int64>[i=1:*,10000,0],'{1}[$points]',true),<i:int64>[ms=0:86399999,600000,0]),quote,quote(null)), quote)"
+# we store it into a temp array because it's used several times
+ms_strip="project(apply(redimension($points,<line_no:int64>[ms=0:86399999,600000,0]),quote,quote(null)), quote)"
+iquery -naq "remove(_tmp2)" 2>/dev/null
+iquery -naq "create_array(_tmp2, <quote:quote null>[ms=0:86399999,600000,0], $TMP)"
+iquery -naq "store($ms_strip, _tmp2)"
+ms_strip="_tmp2"
 
 # Construct a plane lattice of null points by instrument_id and ms_strip
 null_plane="project(cross_join(aggregate($tmp, count(*) as count, instrument_id), $ms_strip),quote)"
