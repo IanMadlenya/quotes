@@ -10,10 +10,11 @@ several supporting functions for working with the quote type and supporting
 aggregate function 'quote_best' to compute the best bid and offer between
 two quotes.
 
-The example scripts illustrate loading a tiny fake OPRA data example designed to
-illustrate the computation. The scripts require several add-on SciDB plugins
-available on GitHub. The easiest way to install the plugins is to follow the
-instructions here:
+The example scripts illustrate loading a tiny fake OPRA data example designed
+to illustrate the computation. The scripts require Pardigm4's enterprise
+extensions to SciDB as well as several add-on SciDB plugins available on
+GitHub. The easiest way to install the plugins is to follow the instructions
+here:
 
 https://github.com/paradigm4/dev_tools
 
