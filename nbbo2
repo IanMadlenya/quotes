@@ -16,7 +16,7 @@ pday=$(iquery -ocsv -aq "project(apply(build(<s:string>[i=1:1,1,0],'$day'),day,s
 day_filter="between(opraqte,null,null,null,$pday,null, null,null,null,$pday,null)"
 
 # 2. Select tkr
-tkr="TEST"
+tkr="AAPL"
 # Build a cross_join filter expression for the instrument tkr:optid indexing
 # array
 tkr_filter="filter(opra_instruments, regex(instrument,'^$tkr:.*'))"
@@ -29,7 +29,7 @@ filter="project($tkr_filter, quote)"
 # integrate out the synthetic dimension. Store this into a temp array.
 tmp="_temp"
 iquery -naq "remove($tmp)" 2>/dev/null
-iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:799,100,0,day=0:1412222400,1,0,ms=0:86399999,600000,0], 'TEMP')"
+iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0], true)"
 # Apply filters and integrate out the synthetic dimension:
 echo "Applying filters"
 time iquery -naq "
@@ -71,3 +71,5 @@ nbbo="aggregate($fill, quote_best(quote) as nbbo, instrument_id, day, ms)"
 # Filter on the points of interest
 ans="project(cross_join($nbbo as A, $ms_strip as B, A.ms, B.ms),nbbo)"
 
+# Run it!
+time iquery -aq "op_count($ans)"
