@@ -44,8 +44,10 @@ store(
 $tmp)
 "
 
-# 3. Select a set of time points of interest
-points="44479832, 33802969, 37466677, 44290884"
+# 3. Select a set of time points of interest, showing an example
+# of reading some arbitrary ms time points in from a file.
+echo -e "44479832\n33802969\n37466677\n44290884"  >/tmp/points
+points="apply(parse(split('/tmp/points'), 'num_attributes=1','attribute_delimiter=,'),ms, int64(a0))"
 
 # Build a strip of null quotes at these points
 # we store it into a temp array because it's used several times
