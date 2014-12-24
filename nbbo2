@@ -8,6 +8,9 @@ if test $major -le 14 -a $minor -lt 9; then
   TMP="'TEMP'"
 fi
 
+# This script uses kung fu from Alex's load_tools package:
+iquery -aq "load_library('load_tools')"
+
 # NBBO example workflow
 # 1. Select a specific day
 # 2. Select all instruments associated with a specified tkr symbol
@@ -23,10 +26,11 @@ fi
 day="2014-10-02" 
 # Convert calendar day to POSIX day value and construct between filter
 pday=$(iquery -ocsv -aq "project(apply(build(<s:string>[i=1:1,1,0],'$day'),day,strpftime(s,'%Y-%m-%d','%s')),day)" | tail -n 1 | tr -d "'")
-day_filter="between(opraqte,null,null,null,$pday,null, null,null,null,$pday,null)"
+#day_filter="between(opraqte,null,null,null,$pday,null, null,null,null,$pday,null)"
+day_filter="slice(opraqte,day,$pday)"
 
 # 2. Select tkr
-tkr="TEST"
+tkr="AAPL"
 # Build a cross_join filter expression for the instrument tkr:optid indexing
 # array
 tkr_filter="filter(opra_instruments, regex(instrument,'^$tkr:.*'))"
@@ -35,78 +39,57 @@ tkr_filter="cross_join($day_filter as A, $tkr_filter as B, A.instrument_id, B.in
 # project away all but the quote attribute
 filter="project($tkr_filter, quote)"
 
-# Now we filter the main data array (opraqte) by tkr and day, and also
+# Now we filter the main data array (opraqte) by tkr, and also
 # integrate out the synthetic dimension. Store this into a temp array.
 tmp="_temp"
 iquery -naq "remove($tmp)" 2>/dev/null
-iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0], $TMP)"
+iquery -naq "create_array($tmp, <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,1,0,ms=0:86399999,86400000,0], $TMP)"
 # Apply filters and integrate out the synthetic dimension:
 echo "Applying filters and aggregating out synthetic dimension"
 time iquery -naq "
 store(
   redimension(
-    aggregate($filter, quote_best(quote) as quote, exch, instrument_id, day, ms),
-    <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0]),
+    aggregate($filter, quote_best(quote) as quote, exch, instrument_id, ms),
+    $tmp),
 $tmp)
 "
 
 # 3. Select a set of time points of interest, showing an example of reading
-# some arbitrary ms time points in from a file.
-echo -e "44479832\n33802969\n37466677\n4000"  >/tmp/points
-points="apply(parse(split('/tmp/points'), 'num_attributes=1','attribute_delimiter=,'),ms, int64(a0))"
-
-# Find the previous two available points in the data for each specified point.
-seek="redimension($points,<count: uint64 null>[ms=0:86399999,600000,0], count(ms) as count)"
-# Make a plane of available data instrument_id and time points:
-data="aggregate($tmp, count(*) as count, instrument_id, ms)"
-data_instrument_id="aggregate($data, count(*) as count, instrument_id)"
-seek="project(cross_join($data_instrument_id as x, $seek as y), x.count)"
-# merge the arrays
-q="merge($data, $seek)"
+# some arbitrary ms time points in from a file. We store these into another
+# temp array.
+#echo -e "44479832\n33802969\n37466677\n4000"  >/tmp/points
+iquery -naq "remove(_temp2)" >/dev/null 2>&1
+iquery -naq "create_array(_temp2,<a0:string NULL DEFAULT null,error:string NULL DEFAULT null,ms:int64 NULL DEFAULT null> [source_instance_id=0:*,1,0,chunk_no=0:*,1,0,line_no=0:*,1000000,0], $TMP)"
+iquery -naq "store(apply(parse(split('/tmp/points'), 'num_attributes=1','attribute_delimiter=,'),ms, int64(a0)), _temp2)"
+# Find the previous and following two available points in the data for each specified point
+points="redimension(_temp2,<count: uint64 null>[ms=0:86399999,86400000,0], count(ms) as count)"
+data2="aggregate($tmp, count(*) as count, exch, instrument_id)"
+seek="project(cross_join($data2 as x, $points as y), x.count)"
+q="merge(project(apply($tmp, count, uint64(null)),count), $seek)"
 # Apply the time coordinate to a value called 'p'
-q="apply($q, p, ms)"
-# Set 'p' to the previous coordinate value, changing names back to ms
-q1="project(cross_join(variable_window($q, ms, 1, 0, min(p) as p) as x, $seek as y, x.ms, y.ms),p)"
-# Cross-join with seek and redimension, renaming dimension conformably with seek
-q1="cast(redimension($q1, <ms:int64>[instrument_id=0:*,100,0,p=0:86399999,600000,0]), <_:int64>[instrument_id=0:*,100,0,ms=0:86399999,600000,0])"
-q1="project(apply($q1, count, uint64(null)),count)"
-# Same as above, but now find the next-to-last values
-q2="project(cross_join(variable_window($q, ms, 2, 0, min(p) as p) as x, $seek as y, x.ms, y.ms),p)"
-q2="cast(redimension($q2, <ms:int64>[instrument_id=0:*,100,0,p=0:86399999,600000,0]), <_:int64>[instrument_id=0:*,100,0,ms=0:86399999,600000,0])"
-q2="project(apply($q2, count, uint64(null)),count)"
-# Merge the last and 2nd to last values in to seek
-seek="merge(merge($seek, $q1), $q2)"
+q="apply($q, p, string(ms)+',')"
 
+q1="variable_window($q, ms, 3, 3, sum(p) as p)"
+q2="cross_join($q1 as x, $points as y, x.ms, y.ms)"
+q3="
+apply(cross_join($q2,build(<b:bool>[i=0:6,7,0],false)),v,
+  iif(i=0,int64(nth_tdv(p,0,',')), 
+  iif(i=1,int64(nth_tdv(p,1,',')), 
+  iif(i=2,int64(nth_tdv(p,2,',')), 
+  iif(i=3,int64(nth_tdv(p,3,',')), 
+  iif(i=4 and char_count(p,',')>4,int64(nth_tdv(p,4,',')), 
+  iif(i=5 and char_count(p,',')>5,int64(nth_tdv(p,5,',')), 
+  iif(i=6 and char_count(p,',')>6,int64(nth_tdv(p,6,',')), null))))))))"
+q4="cast(
+      redimension(apply($q3, quote, quote(null)),
+        <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,1,0,v=0:86399999,86400000,0]),
+        <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,1,0,ms=0:86399999,86400000,0])"
 
-# Build a strip of null quotes at the time points of interest--this is used as
-# a cross_join filter and we store it because it's used more than once.
-ms_strip="aggregate($seek, count(*) as count, ms)"
-
-# Construct a plane lattice of null quotes by instrument_id and ms_strip
-null_points="project(apply($seek, quote, quote(null)), quote)"
-
-# Construct a lattice of null  points conformable with the data array
-lattice="
-project(
-  cross_join(
-    aggregate($tmp, count(quote) as count, exch, day),
-    $null_points),
-quote)
-"
-# Unfortunately, lattice is no longer conformable with $x and we need to
-# redimension it. This adds some cost to the query.
-lattice="redimension($lattice, <quote: quote null>[exch=0:255,1,0,instrument_id=0:*,100,0,day=0:*,1,0,ms=0:86399999,600000,0])"
-
-# Compute last-known best bid and ask prices at every time interval,
-# filling in the null values introduced in step 2.
-fill="merge($tmp, $lattice )"
+fill="merge($tmp, $q4 )"
 fill="cumulate($fill, last_value(quote) as quote, ms)"
 
 # Compute the nbbo across the exchanges
-nbbo="aggregate($fill, quote_best(quote) as nbbo, instrument_id, day, ms)"
+nbbo="aggregate($fill, quote_best(quote) as nbbo, instrument_id, ms)"
 
-# Filter on the points of interest
-ans="project(cross_join($nbbo as A, $ms_strip as B, A.ms, B.ms),nbbo)"
-
-# Run it!
-time iquery -aq "$ans"
+# Run this example!
+time iquery -aq "op_count($nbbo)"
