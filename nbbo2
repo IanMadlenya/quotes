@@ -30,7 +30,7 @@ pday=$(iquery -ocsv -aq "project(apply(build(<s:string>[i=1:1,1,0],'$day'),day,s
 day_filter="slice(opraqte,day,$pday)"
 
 # 2. Select tkr
-tkr="AAPL"
+tkr="TEST"
 # Build a cross_join filter expression for the instrument tkr:optid indexing
 # array
 tkr_filter="filter(opra_instruments, regex(instrument,'^$tkr:.*'))"
@@ -57,7 +57,7 @@ $tmp)
 # 3. Select a set of time points of interest, showing an example of reading
 # some arbitrary ms time points in from a file. We store these into another
 # temp array.
-#echo -e "44479832\n33802969\n37466677\n4000"  >/tmp/points
+echo -e "44479832\n33802969\n37466677\n4000"  >/tmp/points    # example points
 iquery -naq "remove(_temp2)" >/dev/null 2>&1
 iquery -naq "create_array(_temp2,<a0:string NULL DEFAULT null,error:string NULL DEFAULT null,ms:int64 NULL DEFAULT null> [source_instance_id=0:*,1,0,chunk_no=0:*,1,0,line_no=0:*,1000000,0], $TMP)"
 iquery -naq "store(apply(parse(split('/tmp/points'), 'num_attributes=1','attribute_delimiter=,'),ms, int64(a0)), _temp2)"
