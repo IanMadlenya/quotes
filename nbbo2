@@ -93,3 +93,7 @@ nbbo="aggregate($fill, quote_best(quote) as nbbo, instrument_id, ms)"
 
 # Run this example!
 time iquery -aq "op_count($nbbo)"
+
+
+# Clean up temp arrays used
+iquery -naq "remove(_temp1);remove(_temp2)"
