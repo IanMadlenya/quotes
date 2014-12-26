@@ -27,7 +27,7 @@ day="2014-10-02"
 # Convert calendar day to POSIX day value and construct between filter
 pday=$(iquery -ocsv -aq "project(apply(build(<s:string>[i=1:1,1,0],'$day'),day,strpftime(s,'%Y-%m-%d','%s')),day)" | tail -n 1 | tr -d "'")
 #day_filter="between(opraqte,null,null,null,$pday,null, null,null,null,$pday,null)"
-day_filter="slice(opraqte,day,$pday)"
+day_filter="slice(opraqte,day,$pday)"  # faster
 
 # 2. Select tkr
 tkr="TEST"
@@ -57,7 +57,7 @@ $tmp)
 # 3. Select a set of time points of interest, showing an example of reading
 # some arbitrary ms time points in from a file. We store these into another
 # temp array.
-echo -e "44479832\n33802969\n37466677\n4000"  >/tmp/points    # example points
+echo -e "44479832\n33802969\n37466677\n4000"  >/tmp/points
 iquery -naq "remove(_temp2)" >/dev/null 2>&1
 iquery -naq "create_array(_temp2,<a0:string NULL DEFAULT null,error:string NULL DEFAULT null,ms:int64 NULL DEFAULT null> [source_instance_id=0:*,1,0,chunk_no=0:*,1,0,line_no=0:*,1000000,0], $TMP)"
 iquery -naq "store(apply(parse(split('/tmp/points'), 'num_attributes=1','attribute_delimiter=,'),ms, int64(a0)), _temp2)"
@@ -85,7 +85,7 @@ q4="cast(
         <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,1,0,v=0:86399999,86400000,0]),
         <quote:quote null> [exch=0:255,1,0,instrument_id=0:*,1,0,ms=0:86399999,86400000,0])"
 
-fill="merge($tmp, $q4 )"
+fill="project(join(merge($tmp,$q4) as x, $q4 as y), x.quote)"
 fill="cumulate($fill, last_value(quote) as quote, ms)"
 
 # Compute the nbbo across the exchanges
@@ -93,7 +93,3 @@ nbbo="aggregate($fill, quote_best(quote) as nbbo, instrument_id, ms)"
 
 # Run this example!
 time iquery -aq "op_count($nbbo)"
-
-
-# Clean up temp arrays used
-iquery -naq "remove(_temp1);remove(_temp2)"
