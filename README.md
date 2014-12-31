@@ -285,7 +285,7 @@ Output:
 Recall that the quote values display in the format bid, bidsz, bidexch, ask,
 asksz, askexch, and compare with the expected output above.
 
-**See the nbbo2 function for a more comprehensive real-world example.**
+**See the nbbo2 script for a more comprehensive real-world example.**
 
 ## Functions
 
