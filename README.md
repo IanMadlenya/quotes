@@ -284,3 +284,30 @@ Output:
 ```
 Recall that the quote values display in the format bid, bidsz, bidexch, ask,
 asksz, askexch, and compare with the expected output above.
+
+**See the nbbo2 function for a more comprehensive real-world example.**
+
+## Functions
+
+The quotes plugin includes two experimental conversion functions. Each
+conversion can be achieved using safer and more standard techniques in SciDB,
+but these functions are geared only for performance. Very little error checking
+is performed, use them on valid input data!
+
+### int64_t tm2ms (string)
+Convert a time value string into milliseconds from midnight. Example:
+```
+iquery -aq "apply( build(<time:string>[i=1:1,1,0],'09:30:01.456'), ms, tm2ms(time))"
+{i} time,           ms
+{1} '09:30:01.456', 34201456
+```
+
+### int64_t fastdate (string)
+Quickly convert a date string in the format "YYYY-MM-DD" into an
+order-preserving easy to read integer representation (suitable for use
+as a SciDB coordinate axis). Example:
+```
+ iquery -aq "apply( build(<date:string>[i=1:1,1,0],'2014-05-12'), day, fastdate(date))"
+{i} date,         day
+{1} '2014-05-12', 20140512
+```
