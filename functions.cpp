@@ -65,11 +65,35 @@ tm2ms(const Value** args, Value *res, void*)
             break;
           }
         }
-      default:
-        break;
     }
   }
   res->setInt64(ms);
 }
 
+inline int fast_atoi( const char * str )
+{
+  int val = 0;
+  while( *str ) val = val*10 + (*str++ - '0');
+  return val;
+}
+/* Cheesy but fast and order-preserving date string to integer.
+ * ASSUMES date in YYYY-MM-DD format!  No error checking!
+ */
+static void
+fastdate(const Value** args, Value *res, void*)
+{
+  int j;
+  char *data, *p1, *token;
+  int x[3] = {10000, 100, 1}; // year, month, day
+  int64_t ans = 0;
+  for (j = 0, data = (char *) args[0]->getString(); ; j++, data=NULL)
+  {
+    token = strtok_r(data, "-", &p1);
+    if (token == NULL) break;
+    ans = ans + fast_atoi(token)*x[j];
+  }
+  res->setInt64(ans);
+}
+
 REGISTER_FUNCTION(tm2ms, list_of("string"), "int64", tm2ms);
+REGISTER_FUNCTION(fastdate, list_of("string"), "int64", fastdate);
