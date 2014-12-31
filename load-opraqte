@@ -9,7 +9,7 @@ function bail {
   exit 1
 }
 
-# Set the name of the flat file input array:
+# Set the name of the temporary flat file input array:
 x=pipe
 # Set the opra instruments compound indexing array (kr:optid):
 sym=opra_instruments
@@ -47,7 +47,6 @@ ATTR="
 project(
 apply(
 apply(
-apply(
 cast(
 $LOAD,
 <date: string NULL,
@@ -67,8 +66,8 @@ $LOAD,
  chunk_no=0:*,1,0,
  line_no=0:*,100000,0]
 ),
-day,int64(strpftime(date,'%Y-%m-%d','%s'))),
-ms,(int64(strpftime(date + ' ' + tm,'%Y-%m-%d %H:%M:%S','%s'))-day)*1000 + int64(rsub(tm,'s/.*\.//'))),
+day,fastdate(date),
+ms,tm2ms(tm)),
 quote, quote(
        dcast(_bid, float(-1)),
        dcast(_bidsz, int64(-1)),
