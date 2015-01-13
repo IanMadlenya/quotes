@@ -93,7 +93,7 @@ time iquery -naq "store($ATTR, $x)" || exit 1
 y="apply($x,instrument,tkr + ':' + string(optid))"
 # This table may already exist, if not we create it. The chunk size here should
 # match the chunk size used in the main data array.
-iquery -naq "create_array(${sym}, <instrument:string> [instrument_id=0:*,100,0])" 2>/dev/null
+iquery -naq "create array ${sym} <instrument:string> [instrument_id=0:*,100,0]" 2>/dev/null
 s="project($y,instrument)"
 # This filters out just the new tkr:optid indices, and merges them into the
 # instruments table:
@@ -112,12 +112,12 @@ iquery -aq "op_count(${sym})"
 y="index_lookup($y as A, ${sym} as B, A.instrument, instrument_id)"
 
 # redimension and merge into existing array $output
-iquery -naq "create_array($output,
+iquery -naq "create array $output
 <quote: quote null,
  flag:string null,
  feed:string null,
  seqnum:int64 null>
-[synth=0:999,1000,0, exch=0:255, 1, 0, instrument_id=0:*, 100, 0, day=0:*, 1, 0, ms=0:86399999, 600000, 0])" 2>/dev/null
+[synth=0:999,1000,0, exch=0:255, 1, 0, instrument_id=0:*, 100, 0, day=0:*, 1, 0, ms=0:86399999, 600000, 0]" 2>/dev/null
 
 time iquery -naq "insert(redimension($y, $output), $output)" || exit 1
 
