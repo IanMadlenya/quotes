@@ -23,23 +23,25 @@ iquery -aq "load_library('load_tools')"
 # in 1-d of the ideas used. (That idea is extended below to 2-d.)
 
 # -----------------------------------------------------------------------------
-# 1. Select a day
+# 1. Select a day in YYYY-MM-DD format
 # -----------------------------------------------------------------------------
 day="2014-10-02" 
 
-# Convert calendar day to POSIX day value and construct between filter
-pday=$(iquery -ocsv -aq "project(apply(build(<s:string>[i=1:1,1,0],'$day'),day,strpftime(s,'%Y-%m-%d','%s')),day)" | tail -n 1 | tr -d "'")
+# Convert calendar day to a simple integer format YYYYMMDD
+pday=$(echo $day | tr -d '-')
 #day_filter="between(opraqte,null,null,null,$pday,null, null,null,null,$pday,null)"
 day_filter="slice(opraqte,day,$pday)"  # faster
+echo "Day filter: $day_filter"
 
 # -----------------------------------------------------------------------------
 # 2. Select tkr (will show *all* option ids for that tkr)
 # -----------------------------------------------------------------------------
-tkr="TEST"
+tkr="CVS"
 # Build a cross_join filter expression for the instrument tkr:optid indexing
 # array
 tkr_filter="filter(opra_instruments, regex(instrument,'^$tkr:.*'))"
 tkr_filter="cross_join($day_filter as A, $tkr_filter as B, A.instrument_id, B.instrument_id)"
+echo "tkr_filter: $tkr_filter"
 
 # project away all but the quote attribute
 filter="project($tkr_filter, quote)"
@@ -100,5 +102,5 @@ fill="cumulate($fill, last_value(quote) as quote, ms)"
 # Compute the nbbo across the exchanges
 nbbo="aggregate($fill, quote_best(quote) as nbbo, instrument_id, ms)"
 
-# Run this example!
+# Run this example, counting the lines of output
 time iquery -aq "op_count($nbbo)"
