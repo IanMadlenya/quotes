@@ -36,7 +36,7 @@ echo "Day filter: $day_filter"
 # -----------------------------------------------------------------------------
 # 2. Select tkr (will show *all* option ids for that tkr)
 # -----------------------------------------------------------------------------
-tkr="CVS"
+tkr="TEST"
 # Build a cross_join filter expression for the instrument tkr:optid indexing
 # array
 tkr_filter="filter(opra_instruments, regex(instrument,'^$tkr:.*'))"
