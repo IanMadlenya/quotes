@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# We illustrating inserting some extra attributes into the opra_instruments
+# indexing array. That array is created and updated by the load-opraqte
+# script. In that script, we create some extra attributes named
+#
+#  root:string null, exdt:string null,strk:double null,sectype:string null
+#
+# but we don't load the data yet in the load-opraqte script.
+#
+# This script inserts the extra attribute data into the opra_instruments
+# array. As a simple example we just make up some option extra data here,
+# spit it out to a temp csv file, and then load it.
+
+TMPFILE=/tmp/extra.csv
+sym=opra_instruments    # The instruments indexing array
+
+# load some required libraries
+iquery -naq "load_library('load_tools')" >/dev/null || bail "Missing load_tools plugin"
+iquery -naq "load_library('cu')" >/dev/null || bail "Missing cu plugin"
+iquery -naq "load_library('superfunpack')" >/dev/null || bail "Missing superfunpack plugin"
+iquery -naq "load_library('quote')" >/dev/null || bail "Missing quote type and aggregates"
+
+
+cat << EOF > $TMPFILE
+tkr,root,exdt,strk,sectype,optid
+CVS,CVS,2013-01-19,60000,P,6449715
+CVS,CVS,2012-04-21,170000,P,6449716
+CVS,CVS,2012-04-21,180000,P,6628048
+EOF
+
+# OK, let's read in that data, create the compound tkr:optid index, and
+# insert it into the opra_instruments array.
+
+LOAD="parse(split('$TMPFILE','lines_per_chunk=100000'), 'num_attributes=6', 'attribute_delimiter=,', 'chunk_size=100000')"
+
+ATTR="
+project(
+apply(
+cast(
+$LOAD,
+<tkr: string null,
+ root: string null,
+ exdt: string null,
+ _strk: string null,
+ sectype: string null,
+ optid: string null,
+ error: string null>
+[source_instance_id=0:*,1,0,
+ chunk_no=0:*,1,0,
+ line_no=0:*,100000,0]
+),
+strk,dcast(_strk, double(-1)),
+instrument, tkr + ':' + string(optid)),
+instrument,root,exdt,strk,sectype,error)"
+
+# Create a temporary array to hold the parsed input data
+
+iquery -naq "remove(_tmp1)" 2>/dev/null
+iquery -aq "create_array(_tmp1, <instrument: string null, root: string null, exdt: string null, strk:double null, sectype: string null, error: string null> [source_instance_id=0:*,1,0, chunk_no=0:*,1,0, line_no=0:*,100000,0], true)"
+# Use between to cut off the header line of the csv file
+iquery -naq "store(between($ATTR,0,0,1,null,null,null), _tmp1)"
+
+# Create the opra_instruments array if it does not already exist:
+iquery -naq "create array $sym <instrument:string, root:string null, exdt:string null, strk:double null, sectype:string null> [instrument_id=0:*,100,0]" 2>/dev/null
+
+# Find any new instruments that need enumerating and add them
+
+s="project(_tmp1,instrument)"
+# This filters out just the new tkr:optid indices, and merges them into the
+# opra_instruments array:
+idx=$(iquery -ocsv -aq "aggregate(apply(project($sym,instrument),_,instrument_id), max(_))" | tail -n 1)
+idx=$(($idx + 1))
+s_new="project(filter(index_lookup($s as A, project($sym,instrument) as B, A.instrument, instrument_id), is_null(instrument_id)),instrument)"
+s_new="uniq(sort(cu($s_new)))"
+s_new="cast(redimension(apply($s_new, j, i + $idx),<instrument:string>[j=0:*,100,0]),<instrument:string>[instrument_id=0:*,100,0])"
+iquery -naq "insert(apply($s_new,root,string(null),exdt,string(null),strk,double(null),sectype,string(null)), $sym)" && iquery -anq "remove_versions($sym, `iquery -ocsv -aq "aggregate(versions($sym), max(version_id) as max_version)" | tail -n 1`)"
+
+# Finally, redimension and insert the loaded data into the opra_instruments
+# array, removing old versions after a successful insert.  The join/substitute
+# stuff is to get the nullability of the 'instrument' attribute right for the
+# index lookup.
+iquery -naq "insert(redimension(index_lookup(join(project(_tmp1,root,exdt,strk,sectype,error),substitute(project(_tmp1,instrument),build(<s:string>[i=0:0,1,0],''))) as x, project($sym,instrument) as y, x.instrument, instrument_id), $sym), $sym)" && iquery -anq "remove_versions($sym, `iquery -ocsv -aq "aggregate(versions($sym), max(version_id) as max_version)" | tail -n 1`)"
