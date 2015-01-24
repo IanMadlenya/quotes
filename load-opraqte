@@ -9,8 +9,10 @@ function bail {
   exit 1
 }
 
-# Set the name of the temporary flat file input array:
-x=pipe
+# SciDB temp arrays used below:
+x=_tmp1
+tmp2=_tmp2
+
 # Set the opra instruments compound indexing array (kr:optid):
 sym=opra_instruments
 # Set the name of the consolidated data array:
@@ -82,7 +84,9 @@ day,ms,tkr,optid,tm,quote,exch,flag,feed,seqnum
 )"
 
 echo "Loading flat data file $1 into temporary array $x"
-time iquery -naq "store($ATTR, $x)" || exit 1
+iquery -naq "remove($x)" 2>/dev/null
+iquery -naq "create_array(${x},<day:int64 NULL DEFAULT null,ms:int64 NULL DEFAULT null,tkr:string NULL DEFAULT null,optid:string NULL DEFAULT null,tm:string NULL DEFAULT null,quote:quote NULL DEFAULT null,exch:int64 NULL DEFAULT null,flag:string NULL DEFAULT null,feed:string NULL DEFAULT null,seqnum:int64 NULL DEFAULT null> [source_instance_id=0:*,1,0,chunk_no=0:*,1,0,line_no=0:*,100000,0],true)" 2>/dev/null
+time iquery -naq "store($ATTR, $x)"
 
 
 # -----------------------------------------------------------------------------
@@ -102,16 +106,18 @@ idx=$(($idx + 1))
 s_new="project(filter(index_lookup($s as A, ${sym} as B, A.instrument, instrument_id), is_null(instrument_id)),instrument)"
 s_new="uniq(sort(cu($s_new)))"
 s_new="cast(redimension(apply($s_new, j, i + $idx),<instrument:string>[j=0:*,100,0]),<instrument:string>[instrument_id=0:*,100,0])"
-echo "Merging new instrument indices, here is the number of unique instruments prior to merge:"
+echo "Inserting new instrument indices, here is the number of unique instruments before insert:"
 iquery -aq "op_count(${sym})"
-time iquery -naq "insert($s_new, ${sym})"
-echo "Here is the number of unique instruments after merge:"
+iquery -naq "insert($s_new, ${sym})"
+MAX_VERSION=$(iquery -ocsv -aq "aggregate(versions($sym), max(version_id) as max_version)" | tail -n 1)
+iquery -anq "remove_versions($sym, $MAX_VERSION)" > /dev/null 2>&1
+echo "Here is the number of unique instruments after insert:"
 iquery -aq "op_count(${sym})"
 
 # Append the instrument index to the data array
 y="index_lookup($y as A, ${sym} as B, A.instrument, instrument_id)"
 
-# redimension and merge into existing array $output
+# redimension into the $tmp2 array then insert into the main data array
 iquery -naq "create array $output
 <quote: quote null,
  flag:string null,
@@ -119,8 +125,21 @@ iquery -naq "create array $output
  seqnum:int64 null>
 [synth=0:999,1000,0, exch=0:255, 1, 0, instrument_id=0:*, 100, 0, day=0:*, 1, 0, ms=0:86399999, 600000, 0]" 2>/dev/null
 
-time iquery -naq "insert(redimension($y, $output), $output)" || exit 1
+# Create a temporary array tmp2 and store $y into it. We do this extra step to
+# avoid blocking the main data array longer than absolutely neccessary.
+iquery -naq "remove($tmp2)" 2>/dev/null
+iquery -naq "create_array($tmp2,$output,true)" 2>/dev/null
+echo "Redimensioning data..."
+time iquery -naq "store(redimension($y, $output), $tmp2)"
 
-echo "Done. The $output array now has the following cell count:"
-iquery -aq "op_count($output)"
-iquery -aq "remove($x)"
+# Finally, insert the new data into the main data array $output
+echo "Inserting data..."
+time iquery -naq "insert(redimension($tmp2, $output), $output)" || exit 1
+# Drop old versions
+MAX_VERSION=$(iquery -ocsv -aq "aggregate(versions($output), max(version_id) as max_version)" | tail -n 1)
+iquery -anq "remove_versions($output, $MAX_VERSION)" > /dev/null 2>&1
+
+echo "Done."
+iquery -aq "op_count($output)"   # This is expensive...comment out for now?
+iquery -naq "remove($x)" 2>/dev/null
+iquery -naq "remove($tmp2)" 2>/dev/null
