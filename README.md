@@ -263,7 +263,7 @@ fill="merge( $x, $lattice )"
 
 # Step 3. Compute last-known best bid and ask prices at every time interval,
 # filling in the null values introduced in step 2.
-fill="variable_window($fill, ms, 1, 0, last_value(quote) as quote)"
+fill="cumulate($fill, last_value(quote) as quote, ms)"
 
 # Step 4. Compute the nbbo across the exchanges
 nbbo="aggregate($fill, quote_best(quote) as nbbo, instrument_id, day, ms)"
