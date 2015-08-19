@@ -31,7 +31,7 @@ DEBUG=-g -ggdb3
 CFLAGS = -pedantic -W -Wextra -Wall -Wno-variadic-macros -Wno-strict-aliasing \
          -Wno-long-long -Wno-unused-parameter -fPIC -D_STDC_FORMAT_MACROS \
          -Wno-system-headers -isystem  $(OPTIMIZED) -D_STDC_LIMIT_MACROS -std=c99
-CCFLAGS = -pedantic -W -Wextra -Wall -Wno-variadic-macros -Wno-strict-aliasing \
+CXXFLAGS = -pedantic -W -Wextra -Wall -Wno-variadic-macros -Wno-strict-aliasing \
          -Wno-long-long -Wno-unused-parameter -fPIC $(OPTIMIZED) 
 INC = -I. -DPROJECT_ROOT="\"$(SCIDB)\"" -I"$(SCIDB_THIRDPARTY_PREFIX)/3rdparty/boost/include/" \
       -I"$(SCIDB)/include" -I./extern
@@ -39,6 +39,19 @@ INC = -I. -DPROJECT_ROOT="\"$(SCIDB)\"" -I"$(SCIDB_THIRDPARTY_PREFIX)/3rdparty/b
 LIBS = -shared -Wl,-soname,libquote.so -ldl -L. \
        -L"$(SCIDB_THIRDPARTY_PREFIX)/3rdparty/boost/lib" -L"$(SCIDB)/lib" \
        -Wl,-rpath,$(SCIDB)/lib:$(RPATH)
+
+# Compiler settings for SciDB version >= 15.7
+ifneq ("$(wildcard /usr/bin/g++-4.9)","")
+  CC := "/usr/bin/gcc-4.9"
+  CXX := "/usr/bin/g++-4.9"
+  CXXFLAGS+=-std=c++11 -DCPP11
+else
+  ifneq ("$(wildcard /opt/rh/devtoolset-3/root/usr/bin/gcc)","")
+    CC := "/opt/rh/devtoolset-3/root/usr/bin/gcc"
+    CXX := "/opt/rh/devtoolset-3/root/usr/bin/g++"
+    CXXFLAGS+=-std=c++11 -DCPP11
+  endif
+endif
 
 SRCS = quote.cpp
 
@@ -49,8 +62,8 @@ clean:
 
 libquote.so: $(SRCS)
 	@if test ! -d "$(SCIDB)"; then echo  "Error. Try:\n\nmake SCIDB=<PATH TO SCIDB INSTALL PATH>"; exit 1; fi
-	$(CXX) $(CCFLAGS) $(INC) -o quote.o -c quote.cpp
-	$(CXX) $(CCFLAGS) $(INC) -o functions.o -c functions.cpp
-	$(CXX) $(CCFLAGS) $(INC) -o aggregates.o -c aggregates.cpp
-	$(CXX) $(CCFLAGS) $(INC) -o libquote.so plugin.cpp aggregates.o quote.o functions.o $(LIBS)
+	$(CXX) $(CXXFLAGS) $(INC) -o quote.o -c quote.cpp
+	$(CXX) $(CXXFLAGS) $(INC) -o functions.o -c functions.cpp
+	$(CXX) $(CXXFLAGS) $(INC) -o aggregates.o -c aggregates.cpp
+	$(CXX) $(CXXFLAGS) $(INC) -o libquote.so plugin.cpp aggregates.o quote.o functions.o $(LIBS)
 	@echo "Now copy *.so to $(INSTALL_DIR) on all your SciDB nodes, and restart SciDB."
