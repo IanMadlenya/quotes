@@ -17,6 +17,7 @@
 */
 #define _XOPEN_SOURCE
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
@@ -36,14 +37,14 @@ using namespace boost::assign;
 /* 
  * @brief  Parse the data string into a ms time value.
  * @param data (string) input data, assumed to be in the form HH:MM:SS.MLS
- * @returns int64
- * XXX use strtol here instead of atoi...
+ * Rounds finer-grained time values to milliseconds.
+ * @returns int64 XXX No error checking!
  */
 static void
 tm2ms(const Value** args, Value *res, void*)
 {
-  int j, k;
-  char *data, *p1, *p2, *token, *subtoken, *str2;
+  int j;
+  char *data, *p1, *token;
   int64_t ms = 0;
   for (j = 1, data = (char *) args[0]->getString(); ; j++, data=NULL)
   {
@@ -53,18 +54,7 @@ tm2ms(const Value** args, Value *res, void*)
     {
       case 1: ms = ms + 3600000 * ((int64_t) atoi(token)); break;
       case 2: ms = ms + 60000 * ((int64_t) atoi(token)); break;
-      case 3:
-        for (k=1, str2=token; ; k++, str2=NULL)
-        {
-          subtoken = strtok_r(str2, ".", &p2);
-          if (subtoken == NULL) break;
-          if(k==1) ms = ms + 1000*((int64_t) atoi(subtoken));
-          else if(k==2)
-          {
-            ms = ms + (int64_t) atoi(subtoken);
-            break;
-          }
-        }
+      case 3: ms = ms + (int64_t)(1000 * atof(token));
     }
   }
   res->setInt64(ms);
